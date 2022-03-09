@@ -15,7 +15,7 @@ This table provides information about the software prerequisites for the Ansible
 
 | **Ansible Modules** | **VxRail version** | **Python version** | **Python library (VxRail Ansible Utility) version** | **Ansible Version** |
 |---------------------|----------------|--------------------|----------------------------|-------------|
-| v1.1.0 | 7.0.240 | <br> 3.6.x <br> 3.7.x | 1.1.0 | 2.9 and 2.10 | 
+| v1.1.0 | 7.0.240 | 3.8 | 3.8 | test |
 
   * Please follow VxRail Ansible Utility installation instructions on [VxRail Ansible Utility Documentation](https://github.com/dell/ansible-vxrail-utility)
 
