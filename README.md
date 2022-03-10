@@ -5,7 +5,7 @@ The Ansible Modules for Dell EMC VxRail allow data center and IT administrators 
 The capabilities of Ansible modules are gathering system information and performing Lay2 Node Expansion. These tasks can be executed by running simple playbooks written in yaml syntax. The modules are written so that all the operations are idempotent, therefore making multiple identical requests has the same effect as making a single request.
 
 ## Support
-Ansible modules for VxRail are supported by Dell EMC open source community, but not product support agreements, and are provided under the terms of the license attached to the source code. Dell EMC does not provide support for any source code modifications. For any Ansible module issues, questions or feedback, join the [Dell EMC Automation community]( https://www.dell.com/community/Automation/bd-p/Automation ).
+Ansible modules for VxRail are supported by Dell EMC and are provided under the terms of the license attached to the source code. Dell EMC does not provide support for any source code modifications. For any Ansible module issues, questions or feedback, join the [Dell EMC Automation community]( https://www.dell.com/community/Automation/bd-p/Automation ).
 
 ## Supported Platforms
   * Dell EMC VxRail
@@ -15,7 +15,7 @@ This table provides information about the software prerequisites for the Ansible
 
 | **Ansible Modules** | **VxRail version** | **Python version** | **Python library (VxRail Ansible Utility) version** | **Ansible Version** |
 |---------------------|----------------|--------------------|----------------------------|-------------|
-| v1.1.0 | 7.0.240 | 3.8 | 3.8 | test |
+| v1.1.0 | 7.0.240 | <br> 3.7.x <br> 3.8.x | 1.1.0 | 2.9 and 2.10 |
 
   * Please follow VxRail Ansible Utility installation instructions on [VxRail Ansible Utility Documentation](https://github.com/dell/ansible-vxrail-utility)
 
@@ -29,19 +29,6 @@ The modules are written in such a way that all requests are idempotent and hence
   * Cluster information module
   * Hosts module
   * Callhome module
-  * iDRAC Network Settings module
-  * Chassis module
-  * Remove Host module
-  * System Virtual Machines module
-  * Telemetry Tier module
-  * iDRAC Users module
-  * LCM module
-  * Support Account module
-  * Satellite Node Expansion module
-  * Satellite Node Remove module
-  * System Cluster Hosts module
-  * Cluster Portgroups module
-
 
 ## Installation of SDK
 
@@ -51,7 +38,7 @@ Install the python sdk named ['VxRail Ansible Utility'](https://github.com/dell/
 
   * Download the tar build and install the collection anywhere in your system, e.g.
         
-        ansible-galaxy collection install dellemc-vxrail-1.1.0.tar.gz -p <install_path>
+        ansible-galaxy collection install dellemc-vxrail-1.0.0.tar.gz -p <install_path>
   
   * Set the environment variable:
         

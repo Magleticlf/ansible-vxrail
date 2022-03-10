@@ -46,7 +46,7 @@ options:
     default: 60
 
 author:
-    - VxRail Development Team(@VxRailDevTeam) <ansible.team@dell.com>
+    - Hongmei Gao(@gaohongmei) <s.gao@dell.com>
 
 '''
 
@@ -76,7 +76,7 @@ Callhome_Information:
                     ],
      "integrated": true,
      "site_id": "11145366",
-     "status": "registered"
+     "status": "registered"   
     }
 '''
 
@@ -85,7 +85,7 @@ import urllib3
 from ansible.module_utils.basic import AnsibleModule
 import vxrail_ansible_utility
 from vxrail_ansible_utility.rest import ApiException
-from ansible_collections.dellemc.vxrail.plugins.module_utils import dellemc_vxrail_ansible_utils as utils
+from vxrail_ansible_utility import configuration as utils
 
 LOGGER = utils.get_logger("dellemc_vxrail_callhome", "/tmp/vxrail_ansible_callhome.log", log_devel=logging.DEBUG)
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
@@ -114,6 +114,7 @@ class VxRailCallhome():
         self.configuration.password = self.vc_password
         self.configuration.verify_ssl = False
         self.configuration.host = self.system_url.set_host()
+        response = ''
 
     def get_v2_callhome(self):
         callhomeInfos = {}
@@ -122,7 +123,7 @@ class VxRailCallhome():
         api_instance = vxrail_ansible_utility.CallHomeOperationsApi(vxrail_ansible_utility.ApiClient(self.configuration))
         try:
             # query v2 callhome information
-            response = api_instance.v2_callhome_info()
+            response = api_instance.v2_callhome_info_get()
         except ApiException as e:
             LOGGER.error("Exception when calling CallHomeOperationsApi->v2_callhome_info_get: %s\n", e)
             return 'error'
@@ -133,7 +134,7 @@ class VxRailCallhome():
         callhomeInfos['address_list'] = data.address_list
         if data.site_id is not None:
             callhomeInfos['site_id'] = data.site_id
-        if data.address_list is not None:
+        if len(data.address_list) > 0:
             callhomeInfos['address_list'] = []
             callhome_list = data.address_list
             callhome = {}

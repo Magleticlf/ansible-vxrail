@@ -53,13 +53,14 @@ options:
     default: 18000
 
 author:
-    - VxRail Development Team(@VxRailDevTeam) <ansible.team@dell.com>
+    - Hongmei Gao(@gaohongmei) <ansible.team@dell.com>
 
 '''
 
 EXAMPLES = r'''
 - name: Day1 initialization
-  dellemc_vxrail_day1:
+  hosts: localhost
+  vars:
     vxmip: "{{ vxmip }}"
     vcadmin: "{{ vcadmin }}"
     vcpasswd: "{{ vcpasswd }}"
@@ -97,14 +98,10 @@ from vxrail_ansible_utility.rest import ApiException
 import time
 import json
 import os
-from ansible_collections.dellemc.vxrail.plugins.module_utils import dellemc_vxrail_ansible_utils as utils
+from vxrail_ansible_utility import configuration as utils
 
 LOGGER = utils.get_logger("dell_vxrail_day1", "/tmp/vxrail_ansible_day1.log", log_devel=logging.DEBUG)
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-
-MAX_ERROR_COUNT = 10
-CHECK_STATUS_INTERVAL = 60
-MAX_CHECK_COUNT = 300
 
 
 class VxrailDay1Urls():
@@ -118,8 +115,8 @@ class VxrailDay1Urls():
 
 
 class VxRailDay1():
-    def __init__(self, new_vxm_ip=None):
-        self.vxm_ip = new_vxm_ip if new_vxm_ip else module.params.get('vxmip')
+    def __init__(self):
+        self.vxm_ip = module.params.get('vxmip')
         self.timeout = module.params.get('timeout')
         self.vc_admin = module.params.get('vcadmin')
         self.vc_password = module.params.get('vcpasswd')
@@ -131,6 +128,7 @@ class VxRailDay1():
         self.configuration.password = self.vc_password
         self.configuration.verify_ssl = False
         self.configuration.host = self.day1_url.set_host()
+        response = ''
 
     def start_validation(self, day1_json):
         request_body = day1_json
@@ -163,28 +161,12 @@ class VxRailDay1():
         api_instance = vxrail_ansible_utility.VxRailInstallationApi(vxrail_ansible_utility.ApiClient(self.configuration))
         try:
             response = api_instance.v1_system_initialize_status_get()
-        except Exception as e:
+        except ApiException as e:
             LOGGER.error("Exception when calling v1_system_initialize_status_get: %s\n", e)
-            if hasattr(e, 'status') and e.status == 400 and hasattr(e, 'body'):
-                try:
-                    body = json.loads(e.body)
-                    if 'error_code' in body and body['error_code'] == 20101003:
-                        LOGGER.info('Day1 status API return 400 and error_code 20101003, means Day1 is done.')
-
-                        class Obj():
-                            pass
-                        response = Obj()
-                        response.state = 'COMPLETED'
-                        return response
-                except Exception:
-                    return None
-            return None
+            return 'error'
         return response
 
-    @staticmethod
-    def get_request_info(response):
-        if not hasattr(response, 'id'):
-            return None
+    def get_request_info(self, response):
         statusInfo = {}
         statusInfolist = []
         data = response
@@ -193,24 +175,15 @@ class VxRailDay1():
         statusInfo['owner'] = data.owner
         statusInfo['progress'] = data.progress
         statusInfo['step'] = data.step
-        statusInfo['error'] = data.error
         statusInfo['start_time'] = data.start_time
         statusInfo['end_time'] = data.end_time
         statusInfolist.append(dict(statusInfo.items()))
         return statusInfolist
 
-    @staticmethod
-    def check_new_vxm_ip(response):
-        if not hasattr(response, 'extension'):
-            return False
-        for step in response.extension.steps:
-            if step.get('id') == 'validation_report':
-                return step.get('state') == 'COMPLETED'
-        return False
-
 
 def main():
     ''' Entry point into execution flow '''
+    result = ''
     global module
     # define available arguments/parameters a user can pass to the module
     module_args = dict(
@@ -218,7 +191,7 @@ def main():
         vcadmin=dict(required=True),
         vcpasswd=dict(required=True, no_log=True),
         day1json_file=dict(required=True),
-        timeout=dict(type='int', default=MAX_CHECK_COUNT * CHECK_STATUS_INTERVAL)
+        timeout=dict(type='int', default=300 * 60)
     )
     module = AnsibleModule(
         argument_spec=module_args,
@@ -236,19 +209,11 @@ def main():
     file = module.params.get('day1json_file')
     if os.path.isfile(file):
         LOGGER.info('VxRail Initializaion using JSON file %s', module.params.get('day1json_file'))
-        with open(file, encoding='utf_8') as f:
+        with open(file) as f:
             config_json = json.load(f)
     else:
         LOGGER.error('File cannot not be opened or does not exit, please verify and try again')
         module.fail_json(msg="JSON file not found!")
-
-    vxm_ip_in_json = config_json.get("vxrail_manager", {}).get("ip")
-    if not vxm_ip_in_json:
-        vxm_ip_in_json = config_json.get("vxrail_manager", {}).get("ipv6")
-    new_vxm_ip = vxm_ip_in_json if vxm_ip_in_json != module.params.get('vxmip') else None
-    if new_vxm_ip:
-        LOGGER.info('VxRail Manager IP will change to %s during installation', new_vxm_ip)
-
     LOGGER.info('----Start validation for the Day1 JSON input file...----')
     request_body = config_json
     validation_request_id = VxRailDay1().start_validation(request_body)
@@ -257,23 +222,15 @@ def main():
         module.fail_json(
             msg="validation request id is not returned. Please see the /tmp/vxrail_ansible_day1.log for more details")
 
-    error_count = 0
-    while validation_status not in ('COMPLETED', 'FAILED') and time_out < initial_timeout and error_count < MAX_ERROR_COUNT:
+    while validation_status not in ('COMPLETED', 'FAILED') and time_out < initial_timeout:
         validation_response = VxRailDay1().get_request_status()
-        if validation_response:
-            error_count = 0
-            validation_status = validation_response.state
-            validation_result = VxRailDay1.get_request_info(validation_response)
-            LOGGER.info('Day1_DryRun_Task: status: %s.', validation_status)
-            LOGGER.info('Day1_DryRun_Task: details: %s.', validation_result)
-            LOGGER.info("Day1_DryRun Task: Sleeping %s seconds...", CHECK_STATUS_INTERVAL)
-        else:
-            error_count += 1
-            LOGGER.info('Fail to get validation status. Count: %s', error_count)
-
-        time.sleep(CHECK_STATUS_INTERVAL)
-        time_out = time_out + CHECK_STATUS_INTERVAL
-
+        validation_status = validation_response.state
+        validation_result = VxRailDay1().get_request_info(validation_response)
+        LOGGER.info('Day1_DryRun_Task: status: %s.', validation_status)
+        LOGGER.info('Day1_DryRun_Task: details: %s.', validation_result)
+        LOGGER.info("Day1_DryRun Task: Sleeping 60 seconds...")
+        time.sleep(60)
+        time_out = time_out + 60
     errors = validation_response.extension.validation.cursory.errors.fields
     if len(errors) != 0:
         error = errors[0].messages
@@ -286,38 +243,20 @@ def main():
         LOGGER.info("----Configure and deploy a new VxRail cluster----")
         installation_request_id = VxRailDay1().start_initialization(request_body)
         LOGGER.info('Day1 Initialization: VxRail task_ID: %s.', installation_request_id)
-
-        new_vxm_ip_iswork = False
-        error_count = 0
-        while installation_status not in ('COMPLETED', 'FAILED') and time_out < initial_timeout and error_count < MAX_ERROR_COUNT:
-            installation_response = None
-            if new_vxm_ip:
-                installation_response = VxRailDay1(new_vxm_ip).get_request_status()
-                if installation_response and not new_vxm_ip_iswork:
-                    new_vxm_ip_iswork = VxRailDay1.check_new_vxm_ip(installation_response)
-                    if new_vxm_ip_iswork:
-                        LOGGER.info('VxRail Manager IP has been changed to %s', new_vxm_ip)
-            if not installation_response and not new_vxm_ip_iswork:
-                installation_response = VxRailDay1().get_request_status()
-            if installation_response:
-                error_count = 0
-                installation_status = installation_response.state
-                installation_result = VxRailDay1.get_request_info(installation_response)
-                LOGGER.info('Installation_Task: status: %s.', installation_status)
-                LOGGER.info('Installation_Task: details: %s.', installation_result)
-                LOGGER.info("Installation_Task: sleeping %s seconds...", CHECK_STATUS_INTERVAL)
-            else:
-                error_count += 1
-                LOGGER.info('Fail to get installation status. Count: %s', error_count)
-
-            time.sleep(CHECK_STATUS_INTERVAL)
-            time_out = time_out + CHECK_STATUS_INTERVAL
-
+        while installation_status not in ('COMPLETED', 'FAILED') and time_out < initial_timeout:
+            installation_response = VxRailDay1().get_request_status()
+            installation_status = installation_response.state
+            installation_result = VxRailDay1().get_request_info(installation_response)
+            LOGGER.info('Installation_Task: status: %s.', installation_status)
+            LOGGER.info('Installation_Task: details: %s.', installation_result)
+            LOGGER.info("Installation_Task: sleeping 60 seconds...")
+            time.sleep(60)
+            time_out = time_out + 60
         if installation_status == 'COMPLETED':
             LOGGER.info("-----Installation Completed-----")
         else:
             LOGGER.info("------Installation Failed-----")
-            vx_initialization = {'request_id': installation_request_id}
+            vx_initialization = {'request_id': installation_request_id, 'response_error': error}
             vx_facts_result = dict(failed=True, Day1Initialization=vx_initialization,
                                    msg='Day1 initialization has failed. Please see the /tmp/vxrail_ansible_day1.log for more details')
             module.exit_json(**vx_facts_result)

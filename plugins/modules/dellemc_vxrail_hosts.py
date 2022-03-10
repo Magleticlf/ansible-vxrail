@@ -53,7 +53,8 @@ options:
     default: 60
 
 author:
-    - VxRail Development Team(@VxRailDevTeam) <ansible.team@dell.com>
+    - Gao Hongmei(@gaohongmei) <s.gao@dell.com>
+    - Yan Sun(@sunyan) <yan_sun5@dell.com>
 
 '''
 
@@ -267,7 +268,7 @@ Hosts_Information:
         }
 '''
 from functools import reduce
-from ansible_collections.dellemc.vxrail.plugins.module_utils import dellemc_vxrail_ansible_utils as utils
+from vxrail_ansible_utility import configuration as utils
 from vxrail_ansible_utility.rest import ApiException
 import vxrail_ansible_utility
 from ansible.module_utils.basic import AnsibleModule
@@ -303,6 +304,7 @@ class VxRailHosts():
         self.configuration.password = self.vc_password
         self.configuration.verify_ssl = False
         self.configuration.host = self.hosts_url.set_host()
+        response = ''
 
     def get_v4_hosts(self):
         # create an instance of the API class
