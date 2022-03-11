@@ -15,7 +15,7 @@ This table provides information about the software prerequisites for the Ansible
 
 | **Ansible Modules** | **VxRail version** | **Python version** | **Python library (VxRail Ansible Utility) version** | **Ansible Version** |
 |---------------------|----------------|--------------------|----------------------------|-------------|
-| v1.1.0 | 7.0.240 | <br> 3.7.x <br> 3.8.x | 1.1.0 | 2.9 and 2.10 |
+| v1.1.1 | 7.0.240 | <br> 3.7.x <br> 3.8.x | 1.1.0 | 2.9 and 2.10 |
 
   * Please follow VxRail Ansible Utility installation instructions on [VxRail Ansible Utility Documentation](https://github.com/dell/ansible-vxrail-utility)
 
@@ -45,8 +45,6 @@ Install the python sdk named ['VxRail Ansible Utility'](https://github.com/dell/
         export ANSIBLE_COLLECTIONS_PATHS=$ANSIBLE_COLLECTIONS_PATHS:<install_path>
 
 ## Using Collections
-
-
 
   * In order to use any Ansible module, ensure that the importation of the proper FQCN (Fully Qualified Collection Name) must be embedded in the playbook. For example,
  <br>collections:
