@@ -8,7 +8,7 @@ namespace: magleticlf
 name: vxrail
 
 # The version of the collection. Must be compatible with semantic versioning
-version: 
+version: | v1.1.3 | 7.0.240 | <br> 3.7.x <br> 3.8.x | 1.1.0 | 2.9 and 2.10 |
 
 # The path to the Markdown (.md) readme file. This path is relative to the root of the collection
 readme: README.md
