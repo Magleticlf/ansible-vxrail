@@ -10,7 +10,6 @@ echo '************************** update galaxy.yml **************************'
 target_word=$1
 tag=$2
 target_index=`grep -Pon '(\| [a-z 0-9\<\>\.]+){5} \|' README.md | cut --delimiter=":" --fields=1`
-echo $target_index
 sed -i "${target_index}s/.*/${target_word}/g" README.md
 sed -i "s/version:.*/version: ${tag}/g" galaxy.yml
 cat README.md
